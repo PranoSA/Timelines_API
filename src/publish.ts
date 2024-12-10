@@ -61,6 +61,25 @@ const publishHandler = async (req: Request, res: Response) => {
     events: events_json,
   };
 
+  //if any other timeline, with the same publisher andt itle exists, delete it first
+  try {
+    const results = await db(TableNames.published_timelines)
+      .select('*')
+      .where('publisher', publisher)
+      .andWhere('title', title);
+
+    if (results.length > 0) {
+      await db(TableNames.published_timelines)
+        .where('publisher', publisher)
+        .andWhere('title', title)
+        .del();
+    }
+  } catch (err) {
+    console.error('Error deleting existing timeline:', err);
+    res.status(500).send('Error saving timeline');
+    return;
+  }
+
   //insert into db
   try {
     const results = await db(TableNames.published_timelines)
@@ -95,6 +114,43 @@ const searchHandler = async (req: Request, res: Response) => {
   }
 };
 
+//get the published timelines from the user
+const getPublishedTimelines = async (publisher: string) => {
+  try {
+    const results = await db(TableNames.published_timelines)
+      .select('*')
+      .where('publisher', publisher);
+
+    return results;
+  } catch (err) {
+    console.error('Error fetching published timelines:', err);
+    return [];
+  }
+};
+
+//get your own published timelines
+const getPublishedHandler = async (req: Request, res: Response) => {
+  const publisher = res.locals.user;
+
+  if (!publisher) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
+
+  const results = await getPublishedTimelines(publisher);
+
+  res.json(results);
+};
+
+//get a particular user's published timelines
+const getPublishedUserHandler = async (req: Request, res: Response) => {
+  const { publisher } = req.params;
+
+  const results = await getPublishedTimelines(publisher);
+
+  res.json(results);
+};
+
 export default publishHandler;
 
-export { searchHandler };
+export { searchHandler, getPublishedHandler, getPublishedUserHandler };
