@@ -42,6 +42,7 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'https://timeline.compressibleflowcalculator.com',
+    'https://timelines.compressibleflowcalculator.com',
   ],
   optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
