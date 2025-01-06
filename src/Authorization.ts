@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 //load .env file
 dotenv.config();
 
+//Error.stackTraceLimit = 50; // Set this to a higher value as needed
+Error.stackTraceLimit = Infinity;
+
 import jwt from 'jsonwebtoken';
 
 import { verify as jwt_verify, Jwt, JwtHeader, JwtPayload } from 'jsonwebtoken';
@@ -51,7 +54,6 @@ function getKey(
   header: jwt.JwtHeader,
   callback: ((arg0: null, arg1: any) => void) | undefined
 ) {
-  console.log('Called GetKey');
   if (!header.kid) {
     throw new Error('JWT header does not contain kid');
   }
@@ -59,25 +61,42 @@ function getKey(
   keyReady
     .then(() => {
       if (!client) {
-        throw new Error('JWKS client is not initialized');
+        //throw new Error('JWKS client is not initialized');
+        if (callback) {
+          return callback(null, new Error('JWKS client is not initialized'));
+        } else {
+          throw new Error('JWKS client is not initialized');
+        }
       }
 
-      client.getSigningKey(header.kid, function (err, key) {
-        if (err) {
-          console.log('err', err);
-          throw err;
-        }
+      try {
+        client.getSigningKey(header.kid, function (err, key) {
+          if (err) {
+            // return callback(err);
+            //return callback(null, err);
 
-        if (!key) {
-          throw new Error('Failed to get signing key');
-        }
-        // console.log('sss');
-        const signingKey = key.getPublicKey();
-        //console.log('signingKey', signingKey);
+            if (callback) {
+              return callback(null, err);
+            } else {
+              throw new Error('Failed to get signing key');
+            }
+          }
+
+          if (!key) {
+            throw new Error('Failed to get signing key');
+          }
+
+          const signingKey = key.getPublicKey();
+
+          if (callback) {
+            callback(null, signingKey);
+          }
+        });
+      } catch (err) {
         if (callback) {
-          callback(null, signingKey);
+          callback(null, err);
         }
-      });
+      }
     })
     .catch((err) => {
       throw new Error(`Failed to initialize JWKS client: ${err.message}`);
@@ -91,20 +110,28 @@ const decodeToken = (token: string) => {
 };
 
 const verify = async (token: string): Promise<Jwt> => {
-  const decoded = decodeToken(token);
-  if (!decoded) {
-    throw new Error('Failed to decode token');
-  }
+  try {
+    const decoded = decodeToken(token);
+    if (!decoded) {
+      throw new Error('Failed to decode token');
+    }
 
-  return new Promise((resolve, reject) => {
-    jwt.verify(token, getKey, jwt_options, (err, decoded) => {
-      if (err) {
-        return reject(err);
+    return new Promise((resolve, reject) => {
+      try {
+        jwt.verify(token, getKey, jwt_options, (err, decoded) => {
+          if (err) {
+            return reject(err);
+          }
+
+          resolve(decoded as Jwt);
+        });
+      } catch (err) {
+        return Promise.reject(err);
       }
-
-      resolve(decoded as Jwt);
     });
-  });
+  } catch (err) {
+    return Promise.reject(err);
+  }
 };
 
 const printJwksUri = async (issuer: string) => {

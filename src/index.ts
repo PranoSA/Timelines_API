@@ -110,7 +110,7 @@ app.get('/api/v1/timelines/saved', auth_middleware, getSavedTimelinesHandler);
 
 app.post('/api/v1/timelines/saved', auth_middleware, saveHandler);
 
-app.get('/api/v1/timelines/saved/:id', auth_middleware, getSavedTimelineById);
+app.get('/api/v1/timelines/saved/:id',  getSavedTimelineById);
 
 app.put(
   '/api/v1/timelines/saved/:id',

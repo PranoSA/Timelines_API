@@ -203,13 +203,13 @@ const getSavedTimelineById = async (req: Request, res: Response) => {
   const user_id = res.locals.user;
   const { id } = req.params;
 
-  if (!user_id) {
+  /*if (!user_id) {
     res.status(401).send('Unauthorized');
     return;
-  }
+  }*/
 
   const result = await db(TableNames.saved_timelines)
-    .where({ id, user_id })
+    .where({ id /*, user_id */ })
     .select('*');
 
   res.json(result);
